@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <title>CO2 and CH4 Emissions Line Chart</title>
+    <style>
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .line {
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .co2-line {
+            stroke: steelblue;
+
+        }
+
+        .ch4-line {
+            stroke: darkorange;
+        }
+
+        .legend {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        .legend .legend-color {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-right: 5px;
+        }
+        #next {
+            display: block;
+            margin: 0 auto;
+            background-color: #98C1D9;
+            color: white;
+            font-size: 2em;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+        }
+        body {
+            margin: 0;
+            padding: 10px 20px;
+        }
+        #title {
+            text-align: center;
+            font-size: 2em;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script>
+        window.onload = function() {
+            var margin = {top: 50, right: 20, bottom: 30, left: 50},
+                width = document.querySelector("body").clientWidth - margin.left - margin.right - 100;
+                height = 500 - margin.top - margin.bottom;
+
+            var svg = d3.select("#graph").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var x = d3.scaleLinear().range([0, width]),
+                y = d3.scaleLinear().range([height, 0]);
+
+            var line = d3.line()
+                .x(function(d) { return x(d.year); })
+                .y(function(d) { return y(d.value); });
+
+            var co2Data, ch4Data;
+            var visibleData = ['co2', 'ch4'];
+
+            d3.csv('data/co2_emissions.csv').then(function(data) {
+                co2Data = [];
+
+                for (var i = 2000; i <= 2020; i++) {
+                    var total = 0;
+                    data.forEach(function(row) {
+                        total += Number(row[i]);
+                    });
+
+                    co2Data.push({
+                        year: i,
+                        value: total / 1000000  // Divide by 1000000
+                    });
+                }
+
+                return d3.csv('data/ch4_emissions.csv');
+            }).then(function(data) {
+                ch4Data = [];
+
+                for (var i = 2000; i <= 2020; i++) {
+                    var total = 0;
+                    data.forEach(function(row) {
+                        total += Number(row[i]);
+                    });
+
+                    ch4Data.push({
+                        year: i,
+                        value: total / 1000000  // Multiply by 1000000
+                    });
+                }
+
+                drawChart();
+
+                // Draw the legend
+                var legend = svg.append("g")
+                    .attr("class", "legend")
+                    .attr("transform", "translate(" + (width - 100) + "," + 20 + ")");
+
+                legend.append("rect")
+                    .attr("class", "legend-color co2-line")
+                    .attr("width", 10)
+                    .attr("height", 10)
+                    .attr("fill", "steelblue")
+                    .on("click", function() { toggleData('co2'); });
+
+                legend.append("text")
+                    .attr("x", 15)
+                    .attr("y", 10)
+                    .text("CO2 Emissions")
+                    .on("click", function() { toggleData('co2'); });
+
+                legend.append("rect")
+                    .attr("class", "legend-color ch4-line")
+                    .attr("y", 20)
+                    .attr("width", 10)
+                    .attr("height", 10)
+                    .attr("fill", "darkorange")
+                    .on("click", function() { toggleData('ch4'); });
+
+                legend.append("text")
+                    .attr("x", 15)
+                    .attr("y", 30)
+                    .text("CH4 Emissions")
+                    .on("click", function() { toggleData('ch4'); });
+
+
+            });
+
+            function drawChart() {
+                svg.selectAll(".axis").remove();
+                svg.selectAll(".line").remove();
+
+                x.domain(d3.extent(co2Data, function(d) { return d.year; }));
+                y.domain([0, Math.max(
+                    (visibleData.includes('co2') ? d3.max(co2Data, function(d) { return d.value; }) : 0),
+                    (visibleData.includes('ch4') ? d3.max(ch4Data, function(d) { return d.value; }) : 0)
+                )]);
+
+                svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                svg.append("g")
+                    .attr("class", "y axis")
+                    .call(d3.axisLeft(y))
+                    .append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", "1.5em")
+                    .attr("x", "2em")
+                    .attr("fill", "#000")
+                    .style("text-anchor", "end")
+                    .text("Emissions (in 1M tons)");
+
+                if (visibleData.includes('co2')) {
+                    svg.append("path")
+                        .datum(co2Data)
+                        .attr("class", "line co2-line")
+                        .attr("d", line);
+                }
+
+                if (visibleData.includes('ch4')) {
+                    svg.append("path")
+                        .datum(ch4Data)
+                        .attr("class", "line ch4-line")
+                        .attr("d", line);
+                }
+            }
+
+            function toggleData(dataType) {
+                var index = visibleData.indexOf(dataType);
+                if (index > -1) {
+                    // Data type is currently visible, so hide it
+                    visibleData.splice(index, 1);
+                    d3.select('rect.legend-color.' + dataType + '-line').style('fill', 'white');
+                } else {
+                    // Data type is currently hidden, so show it
+                    visibleData.push(dataType);
+                    d3.select('rect.legend-color.' + dataType + '-line').style('fill', dataType === 'co2' ? 'steelblue' : 'darkorange');
+                }
+
+                drawChart();
+            }
+        }
+    </script>
+</head>
+<body>
+<h1 id="title">20 years of gases emissions in the world</h1>
+<p>
+    Introducing our interactive global CO2 and CH4 emissions graph, a powerful tool providing a comparative visual analysis of two critical environmental factors spanning two decades. With the ability to toggle between data sets, this graph delivers a clear view of the worldwide trends in CO2 and CH4 emissions from the years 2000 to 2020. The intuitive layout and elegant design make it simple to use. To explore a specific emission type, simply click on the corresponding entry in the legend, which will focus the graph on that emission type. Click again, and you're back to viewing both sets of data simultaneously.
+</p>
+<p>
+    The insights drawn from this graph are profound. By studying the trend lines, you can observe how emissions of both gases have evolved over the years. You can discern periods of increase and decrease, see how the emissions compare, and identify which gas has seen the most significant changes. The variations may point to the impacts of historical events, policy changes, or technological advancements. Armed with this data, researchers, policy makers, and eco-conscious individuals can better understand our past to influence the future. Use this tool to gain deeper knowledge about our world's climate history and empower yourself to make data-driven decisions.
+</p>
+<div id="graph"></div>
+<button id="next" onclick="window.location.href = 'scene3.html';">Next</button>
+</body>
+</html>

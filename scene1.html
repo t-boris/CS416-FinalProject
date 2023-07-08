@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <title>Title</title>
+    <style>
+        /*#graph {*/
+        /*    width: 100%;*/
+        /*    height: 500px;*/
+        /*    border: 1px solid black;*/
+        /*}*/
+        #next {
+            display: block;
+            margin: 0 auto;
+            background-color: #98C1D9;
+            color: white;
+            font-size: 2em;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+        }
+        body {
+            margin: 0;
+            padding: 10px 20px;
+        }
+        #title {
+            text-align: center;
+            font-size: 2em;
+        }
+    </style>
+    <script>
+        var currentTechnology = null;
+
+        window.showTooltip = function(evt) {
+            var tooltip = document.getElementById('tooltip');
+            var parentData = evt.target.parentNode.__data__;
+            var technology = parentData.key;
+            var year = evt.target.__data__.data.year;
+            var value = evt.target.__data__[1] - evt.target.__data__[0];
+
+            tooltip.innerHTML = 'Year: ' + year + '<br>Technology: ' + technology + '<br>Value: ' + value;
+            tooltip.style.left = evt.pageX + 10 + 'px';
+            tooltip.style.top = evt.pageY + 10 + 'px';
+            tooltip.style.opacity = 1;
+        }
+
+        window.hideTooltip = function() {
+            var tooltip = document.getElementById('tooltip');
+            tooltip.style.opacity = 0;
+        }
+
+        window.update_graph = function(svg, data, x, y, z, margin, energies) {
+            // Remove the existing bars from the graph
+            svg.selectAll("rect").remove();
+            // Remove the existing axes from the graph
+            svg.selectAll(".axis").remove();
+            // Remove the existing legend from the graph
+            svg.selectAll(".legend").remove();
+
+            var stackedData = d3.stack()
+                .keys(energies)
+                (data);
+
+            x.domain(data.map(function(d) { return d.year; }));
+            y.domain([0, d3.max(data, function(d) {
+                var total = 0;
+                for(var i = 0; i < energies.length; i++){
+                    total += d[energies[i]];
+                }
+                return total;
+            })]).nice();
+            z.domain(energies);
+
+            svg.append("g")
+                .selectAll("g")
+                .data(stackedData)
+                .enter().append("g")
+                .attr("fill", function(d) { return z(d.key); })
+                .selectAll("rect")
+                .data(function(d) { return d; })
+                .enter().append("rect")
+                .attr("x", function(d) { return x(d.data.year); })
+                .attr("y", function(d) { return y(d[1]); })
+                .attr("height", function(d) { return y(d[0]) - y(d[1]); })
+                .attr("width", x.bandwidth())
+                .attr("onmouseover", "showTooltip(evt)")
+                .attr("onmouseout", "hideTooltip()");
+
+            svg.append("g")
+                .attr("class", "axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x));
+
+            var lastTick = y.ticks().pop();
+            if (!isNaN(lastTick)) {
+                svg.append("g")
+                    .attr("class", "axis")
+                    .call(d3.axisLeft(y).ticks(null, "s"))
+                    .append("text")
+                    .attr("x", 2)
+                    .attr("y", y(lastTick) + 0.5)
+                    .attr("dy", "0.32em")
+                    .attr("fill", "#000")
+                    .attr("font-weight", "bold")
+                    .attr("text-anchor", "start")
+                    .text("GWh");
+            }
+
+
+
+            // Place legend at the bottom
+            let legend = svg.selectAll(".legend")
+                .data(energies)
+                .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", function(d, i) {
+                    return "translate(0," + (height + margin.bottom + 50 - (i % 4) * 20) + ")"; // move the legend down
+                })
+                .on("click", function(d) {
+                    // Determine which technology was clicked
+                    var selectedTechnology = d;
+                    if (selectedTechnology === currentTechnology) {
+                        currentTechnology = null;
+                        update_graph(svg, data, x, y, z, margin, energyTypes)
+                    } else {
+                        currentTechnology = selectedTechnology;
+                        // Filter the data to include only the selected technology
+                        update_graph(svg, data, x, y, z, margin, [currentTechnology])
+
+                    }
+                });
+
+            // Create rectangles for legend
+            legend.append("rect")
+                .attr("x", function(d, i) { return (Math.floor(i / 4) * 250) + 10; })
+                .attr("width", 18)
+                .attr("height", 18)
+                .style("fill", z);
+
+            // Add text to legend
+            legend.append("text")
+                .attr("x", function(d, i) { return (Math.floor(i / 4) * 250) + 40; }) // positioning of legend text
+                .attr("y", 9)
+                .attr("dy", ".35em")
+                .style("text-anchor", "start")
+                .text(function(d) { return d; });
+        }
+
+        var energyTypes = ["Hydropower", "Renewable hydropower", "Pumped storage", "Marine", 'Wind', 'Onshore wind energy', 'Offshore wind energy', 'Solar', 'Solar photovoltaic', 'Concentrated solar power', 'Bioenergy', 'Solid biofuels', 'Bagasse', 'Renewable municipal waste', 'Other solid biofuels', 'Liquid biofuels', 'Biogas', 'Geothermal'];  // replace with actual column names
+        let legendHeight = 150;
+
+        window.onload = function() {
+
+            d3.csv('data/Green_Energy_Production.csv').then(function(data) {
+                var meltedData = [];
+
+                data.forEach(function(d) {
+                    var region = d['Region/country/area'];
+                    var technology = d['Technology'];
+
+                    // Go through each year column
+                    for (var i = 2000; i <= 2020; i++) {
+                        meltedData.push({
+                            'Region/country/area': region,
+                            'Technology': technology,
+                            'year': i,
+                            'value': +d[i]  // Convert to number
+                        });
+                    }
+                });
+
+                meltedData = meltedData.filter(function(d) { return d["Region/country/area"] === "World"; });
+
+                // Convert the data into a nested format, grouped by year
+                var nestedData = d3.nest()
+                    .key(function(d) { return d.year; })
+                    .rollup(function(v) {
+                        var obj = {};
+                        v.forEach(function(d) {
+                            obj[d.Technology] = +d.value;
+                        })
+                        return obj;
+                    })
+                    .entries(meltedData);
+
+                // Unnest the data, converting it into the expected wide format
+                data = nestedData.map(function(d) {
+                    d.value.year = +d.key;
+                    for(var i = 0; i < energyTypes.length; i++){
+                        d.value[energyTypes[i]] = d.value[energyTypes[i]] || 0;
+                    }
+                    return d.value;
+                });
+
+                data.forEach(function(d) {
+                    d.year = +d.year;
+                    for(var i = 0; i < energyTypes.length; i++){
+                        d[energyTypes[i]] = +d[energyTypes[i]];
+                    }
+                });
+
+                var margin = {top: 20, right: 20, bottom: 30, left: 40},
+                    width = document.querySelector("body").clientWidth - margin.left - margin.right;
+                    height = 500 - margin.top - margin.bottom;
+
+                var x = d3.scaleBand()
+                    .range([0, width])
+                    .padding(0.1);
+                var y = d3.scaleLinear()
+                    .range([height, 0]);
+                var z = d3.scaleOrdinal()
+                    .range(['#4D7A5C', '#336699', '#7D926B', '#3F5C4D', '#66A3CC', '#993333',
+                        '#CCB366', '#5C7A66', '#E6CC80', '#CC9999', '#CC7A66', '#E69980',
+                        '#CC9999', '#CC6680', '#CC4D4D', '#4D7AA3', '#3F5C46', '#5C7A92'
+                        ]);
+
+
+                var svg = d3.select("#graph").append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom + legendHeight)
+                    .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                update_graph(svg, data, x, y, z, margin, energyTypes)
+
+
+            });
+        }
+
+    </script>
+</head>
+<body>
+    <h1 id="title">20 years of green energy production in the world</h1>
+    <p>
+        Discover the evolution of green energy production with our interactive stacked bar chart! This graph provides a comprehensive view of the world's green energy production from 2000 to 2020, broken down by technology type.
+        <br />
+        Here's how to use it:
+        <ul>
+            <li><b>Hover over a bar:</b> When you hover over a section of a bar, a tooltip will appear showing the year, the type of green technology, and the amount of energy produced that year by that technology. This allows you to see the exact figures behind the visual representation.</li>
+            <li><b>Click on a legend item:</b> Want to focus on a specific type of green technology? Simply click on the corresponding item in the legend below the graph. The chart will update to show only the production of the selected technology over the years. Click the item again to return to the full view.</li>
+        </ul>
+    </p>
+    <p>
+        What you can notice:
+        <ol>
+        <li><b>Trends over time:</b> The graph allows you to easily see how the production of different types of green energy has changed over time. You might notice some technologies becoming more prominent while others decline.</li>
+        <li><b>Comparison between technologies:</b> By looking at the different sections of the bars, you can compare the amounts of energy produced by different technologies in a given year.</li>
+        <li><b>Focus on specific technology:</b> By clicking on a legend item, you can isolate the data for a specific technology. This can help you see more clearly how the production of that technology has evolved.</li>
+        </ol>
+    </p>
+    <p>Explore the graph and uncover the story of green energy production!</p>
+    <div id="tooltip" style="position: absolute; opacity: 0; background: #fff; border: 1px solid; border-radius: 5px; padding: 10px;"></div>
+    <div id="graph"></div>
+    <button id="next" onclick="window.location.href = 'scene2.html';">Next</button>
+    <h3>Insights</h3>
+    <ul>
+        <li><b>Hydropower's Major Contribution:</b> The graph indicates that hydropower currently leads the way in green energy production. This dominance could be attributed to several advantages hydropower has over other forms of renewable energy. It is a mature technology with a high level of efficiency and reliability. Also, the availability of water resources globally allows for the widespread use of this energy form. While other green energy technologies are still developing, hydropower's established infrastructure and technology make it a predominant contributor to the green energy field.</li>
+        <li><b>Rapid Development of Solar and Wind Energy:</b> The graph highlights the fast-paced growth of solar and wind energy in green energy production. This acceleration can be attributed to several factors. Both solar and wind energy technologies have seen significant advancements and cost reductions in recent years, making them more accessible and efficient. Also, the growing awareness and concern about climate change is leading many to seek cleaner, renewable energy sources. The rapid development and adoption of solar and wind energy indicate that they might play an increasingly vital role in green energy production in the future.</li>
+    </ul>
+    <p>
+        <a href="https://pxweb.irena.org/pxweb/en/IRENASTAT/IRENASTAT__Power%20Capacity%20and%20Generation/RE-ELECGEN_2022_cycle2.px/" target="_blank">Data source</a>
+    </p>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+</body>
+</html>
