@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+<!--    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>-->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>-->
+<!--    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>-->
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <style>
         .container {
             margin: 0;
         }
 
-        .tooltip{
+        .tooltip {
             position: absolute;
             text-align: center;
             width: 120px;
@@ -24,17 +24,18 @@
             border-radius: 8px;
             pointer-events: none;
         }
-        #tooltip-production{
-          position: absolute;
-          text-align: left;
-          width: 120px;
-          height: 113px;
-          padding: 2px;
-          font: 12px sans-serif;
-          background: lightsteelblue;
-          border: 0px;
-          border-radius: 8px;
-          pointer-events: none;
+
+        #tooltip-production {
+            position: absolute;
+            text-align: left;
+            width: 120px;
+            height: 113px;
+            padding: 2px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
         }
 
         .slider-container {
@@ -53,11 +54,45 @@
             justify-content: space-between;
             width: 100%;
         }
+
+        #map {
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+
+        #slider-container {
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+        body {
+            margin: 0;
+            padding: 10px 20px;
+        }
+        #title {
+            text-align: center;
+            font-size: 2em;
+        }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
+<h2 id="title">Discover Global Green Energy Trends Through An Interactive Visualization</h2>
 
+<p>
+    Welcome to our immersive, dynamic platform that brings green energy data to life through compelling visualizations. Our first visualization, an interactive world map, presents each country's 'green ratio' - a measure of its produced green energy against its total consumed energy. The color scheme intuitively conveys this ratio, with lighter shades indicating higher ratios, thereby highlighting countries making significant strides in renewable energy adoption. Notably, you can zoom in and out, drag around, and even hover over countries to see detailed tooltips. Furthermore, with the year slider ranging from 2000 to 2020, you can delve into historical data, identifying trends and transformations over two decades of green energy production.
+</p>
+
+<p>
+    If you're intrigued by a particular country's progress, you can click on it to access our second visualization: a stacked bar chart representing the country's green energy production over the past 20 years. Each energy type - from solar to wind, hydroelectric to geothermal - is clearly distinguished, providing a comprehensive view of the country's renewable energy portfolio. This visualization uncovers fascinating insights, revealing how a country's energy production landscape has evolved over time and the specific role each energy type plays.
+</p>
+
+<p>
+    Simultaneously, our third visualization, a line chart, displays a country's CO2 emissions for the same 20-year period upon selection. This chart offers a clear representation of the country's environmental impact over time, showing increases, decreases, or plateaus in emissions. Developing countries often show rising trends, whereas many developed nations may present a leveling off or even a slight decrease. This juxtaposition between green energy production and CO2 emissions paints a more holistic picture of a country's efforts towards sustainable development and environmental responsibility. Engage with these visualizations to deepen your understanding of the global green energy landscape and the monumental transition towards a sustainable future.
+</p>
+
+<p>
+  Explore the data for more insights on green energy progress!
+</p>
 <div class="row">
     <div id="map_container" class="col-md-8">
         <svg id="map"></svg>
@@ -71,9 +106,12 @@
         </div>
     </div>
     <div id="graph_container" class="col-md-4">
+        Green Energy Production
         <div class="row">
             <svg id="energy-production"></svg>
         </div>
+        <br/>
+        CO2 Emissions
         <div class="row">
             <svg id="co2-emissions"></svg>
         </div>
@@ -86,40 +124,55 @@
     const energyTypes = ["Hydropower", "Renewable hydropower", "Pumped storage", "Marine", 'Wind', 'Onshore wind energy', 'Offshore wind energy', 'Solar', 'Solar photovoltaic', 'Concentrated solar power', 'Bioenergy', 'Solid biofuels', 'Bagasse', 'Renewable municipal waste', 'Other solid biofuels', 'Liquid biofuels', 'Biogas', 'Geothermal'];  // replace with actual column names
     const legendHeight = 150;
 
-    window.showTooltip = function(evt) {
-      let tooltip = document.getElementById('tooltip-production');
-      let parentData = evt.target.parentNode.__data__;
-      let technology = parentData.key;
-      let year = evt.target.__data__.data.year;
-      let value = evt.target.__data__[1] - evt.target.__data__[0];
+    window.showTooltip = function (evt) {
+        let tooltip = document.getElementById('tooltip-production');
+        let parentData = evt.target.parentNode.__data__;
+        let technology = parentData.key;
+        let year = evt.target.__data__.data.year;
+        let value = evt.target.__data__[1] - evt.target.__data__[0];
 
-      tooltip.innerHTML = 'Year: ' + year + '<br>Technology: ' + technology + '<br>Value: ' + value;
-      tooltip.style.left = evt.pageX + 10 + 'px';
-      tooltip.style.top = evt.pageY + 10 + 'px';
-      tooltip.style.opacity = 1;
+        tooltip.innerHTML = 'Year: ' + year + '<br>Technology: ' + technology + '<br>Value: ' + value;
+        tooltip.style.left = evt.pageX + 10 + 'px';
+        tooltip.style.top = evt.pageY + 10 + 'px';
+        tooltip.style.opacity = 1;
     }
 
-    window.hideTooltip = function() {
-      let tooltip = document.getElementById('tooltip-production');
-      tooltip.style.opacity = 0;
+    window.hideTooltip = function () {
+        let tooltip = document.getElementById('tooltip-production');
+        tooltip.style.opacity = 0;
     }
 
     window.onload = function () {
         // Add your JavaScript here
-        const height = 1000;
+        const height = 800;
 
         let energyProductionData, energyConsumptionData;
 
-        let svgMapContainer = d3.select("#map_container").node().getBoundingClientRect().width;
+        let svgMapContainer = d3.select("#map_container").node().getBoundingClientRect().width - 50;
         let svgEnergyContainer = d3.select("#graph_container").node().getBoundingClientRect().width - 50;
         let svgCO2Container = d3.select("#graph_container").node().getBoundingClientRect().width - 50;
 
         let svgMap = d3.select("#map").attr("width", svgMapContainer).attr("height", height);
+        const g = svgMap.append('g');
         let svgEnergyProduction = d3.select("#energy-production").attr("width", svgEnergyContainer).attr("height", height / 2);
         let svgCO2Emissions = d3.select("#co2-emissions").attr("width", svgCO2Container).attr("height", height / 2);
 
-        let projection = d3.geoMercator().translate([svgMapContainer / 3, height / 2]);
+        let projection = d3.geoMercator().translate([svgMapContainer / 2, height / 2 + 100]).scale(150);
         let path = d3.geoPath().projection(projection);
+
+        d3.select('#slider-container')
+            .style('width', svgMapContainer + 'px');
+
+        const zoom = d3.zoom()
+            .scaleExtent([1, 8])
+            .on('zoom', function () {
+                g.attr('transform', d3.event.transform);
+            });
+        zoom.translateExtent([[0, 0], [svgMapContainer, height]]);
+
+        svgMap.on('dblclick', function () {
+            zoom.transform(svgMap, d3.zoomIdentity);
+        });
 
         // Create a tooltip div that is hidden by default
         let tooltip = d3.select("body").append("div")
@@ -127,7 +180,7 @@
             .style("opacity", 0);
 
         document.getElementById('year-slider').addEventListener('input', function (e) {
-            svgMap.selectAll("path")
+            g.selectAll("path")
                 .attr("fill", function (d) {
                     return getCountryColor(d.properties.name, e.target.value);
                 });
@@ -143,7 +196,12 @@
             energyProductionData = production;
             energyConsumptionData = consumption;
 
-            svgMap.selectAll("path")
+            svgMap.append("path")
+                .attr("d", `M0,0 L${svgMapContainer},0 L${svgMapContainer},${height} L0,${height} Z`)
+                .attr("fill", "none")
+                .attr("stroke", "black");
+
+            g.selectAll("path")
                 .data(world.features)
                 .enter()
                 .append("path")
@@ -172,9 +230,13 @@
                     updateEnergyProductionGraph(d.properties.name);
                     updateCO2EmissionsGraph(d.properties.name);
                 });
+            svgMap.call(zoom);
+
+            updateEnergyProductionGraph("World");
+            updateCO2EmissionsGraph("World");
 
             document.getElementById('year-slider').addEventListener('input', function (e) {
-                svgMap.selectAll("path")
+                g.selectAll("path")
                     .attr("fill", function (d) {
                         return getCountryColor(d.properties.name, e.target.value);
                     });
@@ -288,9 +350,9 @@
                 }
             });
 
-            let margin = {top: 20, right: 20, bottom: 30, left: 40},
+            let margin = {top: 20, right: 5, bottom: 30, left: 40},
                 width = d3.select("#energy-production").node().getBoundingClientRect().width - margin.left - margin.right;
-            let height = 500 - margin.top - margin.bottom;
+            let height = 400 - margin.top - margin.bottom;
 
             let x = d3.scaleBand()
                 .range([0, width])
@@ -310,23 +372,23 @@
 
         function update_production_graph(svg, data, x, y, z, margin, energies, country) {
 
-          function showTooltip(evt) {
-            let tooltip = document.getElementById('tooltip-production');
-            let parentData = evt.target.parentNode.__data__;
-            let technology = parentData.key;
-            let year = evt.target.__data__.data.year;
-            let value = evt.target.__data__[1] - evt.target.__data__[0];
+            function showTooltip(evt) {
+                let tooltip = document.getElementById('tooltip-production');
+                let parentData = evt.target.parentNode.__data__;
+                let technology = parentData.key;
+                let year = evt.target.__data__.data.year;
+                let value = evt.target.__data__[1] - evt.target.__data__[0];
 
-            tooltip.innerHTML = 'Year: ' + year + '<br>Technology: ' + technology + '<br>Value: ' + value;
-            tooltip.style.left = evt.pageX + 10 + 'px';
-            tooltip.style.top = evt.pageY + 10 + 'px';
-            tooltip.style.opacity = 1;
-          }
+                tooltip.innerHTML = 'Year: ' + year + '<br>Technology: ' + technology + '<br>Value: ' + value;
+                tooltip.style.left = evt.pageX + 10 + 'px';
+                tooltip.style.top = evt.pageY + 10 + 'px';
+                tooltip.style.opacity = 1;
+            }
 
-          function hideTooltip() {
-            let tooltip = document.getElementById('tooltip-production');
-            tooltip.style.opacity = 0;
-          }
+            function hideTooltip() {
+                let tooltip = document.getElementById('tooltip-production');
+                tooltip.style.opacity = 0;
+            }
 
             // Remove the existing bars from the graph
             svg.selectAll("rect").remove();
@@ -338,7 +400,7 @@
             svg = svg.append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-            let height = 450;
+            let height = 350;
 
             let stackedData = d3.stack()
                 .keys(energies)
@@ -384,7 +446,13 @@
             svg.append("g")
                 .attr("class", "axis")
                 .attr("transform", "translate(0," + height + ")")
-                .call(d3.axisBottom(x));
+                //.attr("transform", "rotate(-65)")
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .style("text-anchor", "end")
+                .attr("dx", "-.8em")
+                .attr("dy", ".15em")
+                .attr("transform", "rotate(-65)");
 
             let lastTick = y.ticks().pop();
             if (!isNaN(lastTick)) {
@@ -403,17 +471,100 @@
         }
 
 
-
         function updateCO2EmissionsGraph(country) {
+
+            // Remove the existing bars from the graph
+            svgCO2Emissions.selectAll("path").remove();
+            // Remove the existing axes from the graph
+            svgCO2Emissions.selectAll(".axis").remove();
+            // Remove the existing legend from the graph
+            svgCO2Emissions.selectAll(".legend").remove();
+
             d3.csv("data/co2_emissions.csv").then(function (data) {
-                // Filter the data for the selected country, then update and redraw the CO2 emissions graph
-                let countryData = data.filter(d => d.country === country);
 
-                // Clear previous data
-                svgCO2Emissions.selectAll("*").remove();
+                let margin = {top: 20, right: 5, bottom: 30, left: 40},
+                    width = d3.select("#co2-emissions").node().getBoundingClientRect().width - margin.left - margin.right;
+                let height = 400 - margin.top - margin.bottom;
 
-                // Add new data and redraw graph
-                // This depends on how your graph is implemented
+                // Filter data if a country is passed
+                if (country) {
+                    data = data.filter(d => (d.Name === country || country === "World"));
+                    if (data.length === 0) {
+                        console.log("CO2 emissions. No data for " + country);
+                    }
+                }
+
+                // Extract years and emissions values
+                let years = [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020]
+                let emissions = []
+
+                for (let year = 2000; year <= 2020; year++) {
+                  let yearEmission = 0
+                  for (let countryIndex = 0; countryIndex < data.length; countryIndex++) {
+                    yearEmission += +data[countryIndex][year]
+                  }
+                  emissions.push( yearEmission / 1000000);
+                }
+
+                    // let countryEmissionsData = data[countryIndex];
+                    //
+                    //     emissions.push(+countryEmissionsData[year] / 1000000);
+                    // }
+
+
+
+                let co2Data = [];
+                for (let i = 0; i < years.length; i++) {
+                    co2Data.push({year: years[i], emissions: emissions[i]});
+                }
+
+                // Set up scales and axes
+                let x = d3.scaleLinear()
+                    .domain([2000, 2020])
+                    .range([0, width]);
+
+                let y = d3.scaleLinear()
+                    .domain([0, d3.max(emissions)])
+                    .range([height, 0]);
+
+                let xAxis = d3.axisBottom(x);
+                let yAxis = d3.axisLeft(y);
+
+                // Generate line path
+                let line = d3.line()
+                    .x(d => x(d.year))
+                    .y(d => y(d.emissions));
+
+                // Update graph
+                let path = svgCO2Emissions.append("path")
+                        .attr("transform", "translate(20,0)")
+                    .attr("d", line(co2Data))
+                    .attr("fill", "none")
+                    .attr("stroke", "steelblue");
+
+                svgCO2Emissions.append("g")
+                    .attr("transform", "translate(20," + height + ")")
+                    .call(xAxis)
+                    .selectAll("text")
+                    .style("text-anchor", "end")
+                    .attr("dx", "-.8em")
+                    .attr("dy", ".15em")
+                    .attr("transform", "rotate(-65)");
+
+              let lastTick = y.ticks().pop();
+                svgCO2Emissions.append("g")
+                        .attr("class", "axis")
+                        .attr("transform", "translate(" + margin.left + ",0)")
+                    .call(yAxis)
+                        .append("text")
+                        .attr("x", 2)
+                        .attr("y", y(lastTick) + 0.5)
+                        .attr("dy", "0.32em")
+                        .attr("fill", "#000")
+                        .attr("font-weight", "bold")
+                        .attr("text-anchor", "start")
+                        .text("Mil Ton" + "      (" + country + ")");
+
             });
         }
     }
